@@ -2,17 +2,28 @@
   <div class="gs-index">
     <div id="food-overview">
       <h1>Groceries</h1>
-      <div v-for="food in foods">
-        <h2 v-text="food.name"></h2>
-        <ul id="food-list">
-          <li v-for="item in food.data" @click="putFoodInBasket(item)" :class="{ loading: item.isLoading }" :style="{ 'border-color': food.color }">
-            <span class="label" v-text="item.label"></span>
-            <span v-if="item.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
-            <span v-if="item.inBasket" class="success-icon big">&#10003;</span>
+      <div class="filter">
+        <label for="search">Search</label>
+        <input type="text" name="search" v-model="searchInput">
+      </div>
+
+      <div class="filter">
+        <label>Categories</label>
+        <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
+      </div>
+
+      <div>
+        <ul id="grocery-list">
+          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="{ 'border-color': grocery.color }">
+            <span class="label" v-text="grocery.label"></span>
+            <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
+            <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
+
           </li>
         </ul>
       </div>
     </div>
+
 
     <div id="basket">
       <h1>Basket</h1>
@@ -28,6 +39,7 @@
 <script>
 import dav from 'dav';
 import util from '../util';
+import Badge from './Badge';
 
 export default {
   name: 'HelloWorld',
@@ -36,14 +48,16 @@ export default {
   },
   data () {
     return {
+      searchInput: null,
       basket: this.$store.state.basket,
-      foods: this.$store.state.foods
+      groceries: this.$store.getters.groceries,
+      categories: this.$store.state.groceryCategories
     }
   },
   methods: {
     putFoodInBasket (item) {
       console.log(item);
-      this.$store.dispatch("togglePutToBasketState", { item, attr: "isLoading", val: true });
+      this.$store.dispatch("setItemState", { item, attr: "isLoading", val: true });
       this.$store.dispatch("putItemInBasket", { item });
       this.createTodoElement(item);
     },
@@ -77,8 +91,8 @@ export default {
           xhr: xhr
         })
         .then(function(c) {
-          store.dispatch('togglePutToBasketState', { item, attr: "isLoading", val: false });
-          store.dispatch('togglePutToBasketState', { item, attr: "inBasket", val: true });
+          store.dispatch('setItemState', { item, attr: "isLoading", val: false });
+          store.dispatch('setItemState', { item, attr: "inBasket", val: true });
         });
         // // account instanceof dav.Account
         // account.calendars.forEach(function(calendar) {
@@ -86,11 +100,29 @@ export default {
         //   // etc.
         // });
       });
+    },
+    categoryClick (category) {
+      this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
     }
   },
+  components: {
+    Badge
+  },
   computed: {
+    filteredGroceries () {
+      let activeCategories = this.$store.state.groceryCategories.filter(c => c.isActive).map(c => c.name);
+      let g = this.groceries.filter(g => activeCategories.includes(g.category))
+                            .filter(g => {
+                              if(this.searchInput && this.searchInput.trim().length > 0) {
+                                return g.label.includes(this.searchInput);
+                              }
+                              return true;
+                            });
+      return g;
+    }
   },
   created () {
+    this.$store.dispatch('initStore');
   }
 }
 </script>
@@ -106,12 +138,30 @@ h3 {
   margin: 40px 0 0;
 }
 
-ul#food-list {
+label {
+  font-weight: bold;
+  font-size: 0.8em;
+  margin-right: 10px;
+}
+
+.filter {
+  display: inline-block;
+  margin: 0 10px;
+
+  &.filter-search {
+    input {
+      padding: 5px 7px;
+    }
+  }
+}
+
+ul#grocery-list {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
   grid-row-gap: 15px;
   list-style-type: none;
   padding: 0;
+  margin: 30px 0;
 
   li {
     display: inline-block;
