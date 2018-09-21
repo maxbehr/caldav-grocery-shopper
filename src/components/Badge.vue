@@ -34,6 +34,7 @@ export default {
 
   span {
     padding: 5px 15px;
+    border: 1px solid #e8e8e8;
     border-radius: 25px;
     margin: 0 2px;
     font-size: 0.9em;

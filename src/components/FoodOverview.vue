@@ -1,29 +1,32 @@
 <template>
   <div class="gs-index">
     <div id="food-overview">
-      <h1>Groceries</h1>
-      <div class="filter">
-        <label for="search">Search</label>
-        <input type="text" name="search" v-model="searchInput">
+      <div id="grocery-head">
+        <h1>Groceries</h1>
+        <div class="filter filter-search">
+          <label for="search">Search</label>
+          <input type="text" name="search" v-model="searchInput">
+        </div>
+
+        <div class="filter filter-categories">
+          <label>Categories</label>
+          <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
+        </div>
       </div>
 
-      <div class="filter">
-        <label>Categories</label>
-        <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
-      </div>
-
-      <div>
+      <div id="grocery-body">
         <ul id="grocery-list">
-          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="{ 'border-color': grocery.color }">
-            <span class="label" v-text="grocery.label"></span>
+          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
             <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
             <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
-
+            <span class="grocery-info">
+              <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
+              <span class="label" v-text="grocery.label"></span>
+            </span>
           </li>
         </ul>
       </div>
     </div>
-
 
     <div id="basket">
       <h1>Basket</h1>
@@ -55,6 +58,12 @@ export default {
     }
   },
   methods: {
+    imgUrl (img) {
+      if(img && img.length > 0) {
+        return { 'background-image': `url('${require('../img/' + img)}')` };
+      }
+      return {}
+    },
     putFoodInBasket (item) {
       console.log(item);
       this.$store.dispatch("setItemState", { item, attr: "isLoading", val: true });
@@ -132,6 +141,32 @@ export default {
 .gs-index {
   display: grid;
   grid-template-columns: 0.8fr 0.2fr;
+
+  #grocery-head {
+    display: grid;
+    grid-template-columns: 0.2fr 0.2fr 0.6fr;
+    padding: 0 15px;
+
+    * {
+      display: flex;
+      align-self: flex-end;
+      align-items: center;
+    }
+  }
+
+  #food-overview {
+    background-color: #f6f9fc;
+  }
+
+  #grocery-body {
+    background-color: #f6f9fc;
+  }
+}
+
+h1 {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
 }
 
 h3 {
@@ -151,7 +186,15 @@ label {
   &.filter-search {
     input {
       padding: 5px 7px;
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 0 #efefef;
+      background: #ffffff;
+      border: 1px solid #e8e8e8;
     }
+  }
+
+  &.filter-categories {
+    justify-content: flex-end;
   }
 }
 
@@ -164,17 +207,40 @@ ul#grocery-list {
   margin: 30px 0;
 
   li {
-    display: inline-block;
+    display: flex;
+    align-items: flex-end;
     margin: 0 10px;
     position: relative;
-    border: 5px solid #efefef;
+    border: 2px solid #efefef;
     border-radius: 10px;
     padding: 10px 15px;
     background-size: cover;
     height: 100px;
     width: 100px;
+    box-shadow: 0 0 15px #efefef;
+    background-color: white;
 
-    span.label {
+    span.grocery-info {
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+      background-color: #00000042;
+      color: white;
+      font-weight: bold;
+      left: 0;
+      border-bottom-right-radius: 10px;
+      border-bottom-left-radius: 10px;
+      padding: 5px 0;
+      font-size: 0.8em;
+    }
+
+    span.category-marker {
+      display: inline-block;
+      height: 10px;
+      width: 10px;
+      margin-right: 10px;
+      border-radius: 10px;
+      border: 1px solid #b3b3b3;
     }
 
     span.loading-icon, span.success-icon {
