@@ -28,7 +28,7 @@ npm run build # Compiles and minifies for production
 ## To do
 - [ ] Fixed basket
 - [ ] Media Queries
-- [ ] Filter items by category
+- [x] Filter items by category
 - [ ] Batch request for multiple items
-- [ ] "n times" summary for entry that was added multiple times
-- [ ] Removable items
+- [x] "n times" summary for entry that was added multiple times
+- [x] Removable items

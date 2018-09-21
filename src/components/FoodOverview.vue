@@ -10,31 +10,42 @@
 
         <div class="filter filter-categories">
           <label>Categories</label>
-          <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
+          <Badge v-for="cat in groceryData" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
         </div>
       </div>
 
       <div id="grocery-body">
-        <ul id="grocery-list">
-          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
-            <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
-            <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
-            <span class="grocery-info">
-              <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
-              <span class="label" v-text="grocery.label"></span>
-            </span>
-          </li>
-        </ul>
+        <div v-if="category.isActive" v-for="category in groceryData">
+          <h3 v-text="category.name"></h3>
+          <ul id="grocery-list">
+            <li v-for="grocery in category.data" :key="grocery.label" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
+              <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
+              <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
+              <span class="grocery-info">
+                <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
+                <span class="label" v-text="grocery.label"></span>
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
     <div id="basket">
       <h1>Basket</h1>
       <ul id="basket-list">
-        <li v-for="item in basket" :class="{ loading: item.isLoading }">
-          <span v-text="item.label"></span>
+        <li v-for="entry in basketItems">
+          <span v-if="entry.amount > 1" v-text="entry.amount + 'x '"></span>
+          <span v-text="entry.item.label"></span>
+
+          <span class="actions">
+            <span class="more" @click="addItemToBasket(entry.item)">+</span>
+            <span v-if="entry.amount > 1" class="less" @click="reduceAmountInBasket(entry)">－</span>
+            <span class="remove" @click="removeEntryFromBasket(entry)">x</span>
+          </span>
         </li>
       </ul>
+      <div id="btn-create-list" @click="createShoppingList()">create &#10003;</div>
     </div>
   </div>
 </template>
@@ -52,9 +63,7 @@ export default {
   data () {
     return {
       searchInput: null,
-      basket: this.$store.state.basket,
-      groceries: this.$store.getters.groceries,
-      categories: this.$store.state.groceryCategories
+      groceryData: this.$store.state.groceries
     }
   },
   methods: {
@@ -64,51 +73,14 @@ export default {
       }
       return {}
     },
-    putFoodInBasket (item) {
-      console.log(item);
-      this.$store.dispatch("setItemState", { item, attr: "isLoading", val: true });
-      this.$store.dispatch("putItemInBasket", { item });
-      this.createTodoElement(item);
+    addItemToBasket (item) {
+      this.$store.dispatch("addEntryToBasket", { item });
     },
-    createTodoElement (item) {
-      let store = this.$store;
-      var dav = require('dav');
-      let calEntry = this.createICalEntry({ label: item.label });
-
-      var xhr = new dav.transport.Basic(
-        new dav.Credentials({
-          username: process.env.VUE_APP_DAV_USER,
-          password: process.env.VUE_APP_DAV_PASS
-        })
-      );
-
-      dav.createAccount({ server: process.env.VUE_APP_DAV_SERVER, xhr: xhr })
-      .then(function(account) {
-        let c = account.calendars.filter(c => c.displayName === "Einkaufsliste")[0];
-        console.log(c);
-
-        let filename = item.label.trim().toLowerCase()
-                          .replace(' ', '-')
-                          .replace('\u00e4', 'ae')
-                          .replace('\u00f6', 'oe')
-                          .replace('\u00fc', 'ue')
-                          .replace('\u00df', 'ss');
-
-        dav.createCalendarObject(c, {
-          data: calEntry,
-          filename: `${filename}.ics`,
-          xhr: xhr
-        })
-        .then(function(c) {
-          store.dispatch('setItemState', { item, attr: "isLoading", val: false });
-          store.dispatch('setItemState', { item, attr: "inBasket", val: true });
-        });
-        // // account instanceof dav.Account
-        // account.calendars.forEach(function(calendar) {
-        //   console.log('Found calendar named ', calendar);
-        //   // etc.
-        // });
-      });
+    removeEntryFromBasket (entry) {
+      this.$store.dispatch("removeEntryFromBasket", { entry });
+    },
+    reduceAmountInBasket (entry) {
+      this.$store.dispatch("reduceAmountInBasket", { entry });
     },
     categoryClick (category) {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
@@ -118,9 +90,12 @@ export default {
     Badge
   },
   computed: {
+    basketItems () {
+      return this.$store.state.basket;
+    },
     filteredGroceries () {
-      let activeCategories = this.$store.state.groceryCategories.filter(c => c.isActive).map(c => c.name);
-      let g = this.groceries.filter(g => activeCategories.includes(g.category))
+      let activeCategories = this.groceryData.filter(c => c.isActive).map(c => c.name);
+      let g = this.groceryData.filter(g => activeCategories.includes(g.category))
                             .filter(g => {
                               if(this.searchInput && this.searchInput.trim().length > 0) {
                                 return g.label.includes(this.searchInput);
@@ -145,7 +120,7 @@ export default {
   #grocery-head {
     display: grid;
     grid-template-columns: 0.2fr 0.2fr 0.6fr;
-    padding: 0 15px;
+    padding: 10px 15px;
 
     * {
       display: flex;
@@ -160,6 +135,12 @@ export default {
 
   #grocery-body {
     background-color: #f6f9fc;
+
+    h3 {
+      font-size: 0.8em;
+      text-align: left;
+      padding-left: 15px;
+    }
   }
 }
 
@@ -204,7 +185,8 @@ ul#grocery-list {
   grid-row-gap: 15px;
   list-style-type: none;
   padding: 0;
-  margin: 30px 0;
+  padding: 0;
+  margin: 10px 0 30px 0;
 
   li {
     display: flex;
@@ -277,15 +259,47 @@ ul#grocery-list {
   }
 }
 
-ul#basket-list {
-  list-style-type: none;
-  text-align: left;
+#basket {
+  div#btn-create-list {
+    margin: 25px;
+    background: #bfe2ca;
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 1.5em;
+  }
 
-  li {
-    display: block;
+  ul#basket-list {
+    list-style-type: none;
+    text-align: left;
 
-    &.loading {
-      color: #b1b1b1;
+    .actions {
+      margin: 0 0 0 10px;
+
+      span {
+        width: 30px;
+        display: inline-block;
+        text-align: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        cursor: pointer;
+
+        &:hover {
+          &.more { background: #00ff00; }
+          &.less { background: #ff1100; }
+          &.remove { background: #ff0000; }
+        }
+      }
+    }
+
+    li {
+      display: block;
+      -webkit-user-select: none; /* Chrome/Safari */
+      -moz-user-select: none; /* Firefox */
+      -ms-user-select: none; /* IE10+ */
+
+      &.loading {
+        color: #b1b1b1;
+      }
     }
   }
 }

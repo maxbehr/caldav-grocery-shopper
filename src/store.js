@@ -8,12 +8,29 @@ import groceryData from './groceries.json';
 export default new Vuex.Store({
   state: {
     basket: [],
-    groceries: groceryData,
-    groceryCategories: []
+    groceries: groceryData
   },
   mutations: {
-    ADD_ITEM_TO_BASKET (state, payload) {
-      state.basket.push(payload.item);
+    ADD_ENTRY_TO_BASKET (state, payload) {
+      let item = payload.item;
+      let entry = state.basket.filter(e => e.item.label === item.label)[0];
+      if(entry) {
+        entry.amount = entry.amount + 1;
+      } else {
+        state.basket.push({ item: payload.item, amount: 1 });
+      }
+    },
+    REDUCE_AMOUNT_IN_BASKET_FOR_ITEM (state, payload) {
+      let item = payload.entry.item;
+      let entry = state.basket.filter(e => e.item.label === item.label)[0];
+      if(entry && entry.amount > 1) {
+        entry.amount = entry.amount - 1;
+      }
+    },
+    REMOVE_ENTRY_FROM_BASKET (state, payload) {
+      let entry = payload.entry;
+      let index = state.basket.indexOf(entry);
+      state.basket.splice(index, 1);
     },
     SET_ITEM_STATE (state, payload) {
       console.log('payload', payload);
@@ -37,18 +54,11 @@ export default new Vuex.Store({
           Vue.set(d, 'color', g.color);
           Vue.set(d, 'category', g.name);
         });
-
-        //  Fill categories
-        state.groceryCategories.push({ name: g.name, color: g.color, isActive: true });
+        Vue.set(g, 'isActive', true);
       });
     }
   },
   getters: {
-    groceryCategorises: (state, getters) => {
-      // let categories = state.groceries.map(f => ({ name: f.name, color: f.color }));
-      // return categories;
-      return state.groceryCategories;
-    },
     groceries: (state, getters) => {
       state.groceries
       return state.groceries.reduce((acc, curr) => acc.concat(curr.data), []);;
@@ -58,8 +68,15 @@ export default new Vuex.Store({
     setItemState (context, payload) {
       context.commit('SET_ITEM_STATE', payload);
     },
-    putItemInBasket (context, payload) {
-      context.commit('ADD_ITEM_TO_BASKET', payload);
+    addEntryToBasket (context, payload) {
+      context.commit('ADD_ENTRY_TO_BASKET', payload);
+    },
+    removeEntryFromBasket (context, payload) {
+      console.log('remove', payload);
+      context.commit('REMOVE_ENTRY_FROM_BASKET', payload);
+    },
+    reduceAmountInBasket (context, payload) {
+      context.commit('REDUCE_AMOUNT_IN_BASKET_FOR_ITEM', payload);
     },
     initStore (context, payload) {
       context.commit('INIT_STORE', payload);
