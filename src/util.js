@@ -9,6 +9,26 @@ export default {
         return v.toString(16);
       });
     },
+    sanitizeString (str) {
+      return str.trim().toLowerCase()
+              .replace(' ', '-')
+              .replace('\u00e4', 'ae')
+              .replace('\u00f6', 'oe')
+              .replace('\u00fc', 'ue')
+              .replace('\u00df', 'ss');
+    },
+    createEntryString(entry) {
+      let amount = entry.amount > 1 ? entry.amount + 'x ' : '';
+      return `${amount + entry.item.label}`;
+    },
+    /**
+     * [createICalEntry description]
+     * @param  {[type]} options
+     *                   - entry
+     *                   - due
+     *                   - label
+     * @return {[type]}         [description]
+     */
     createICalEntry(options) {
       let str = `BEGIN:VCALENDAR
 VERSION:2.0

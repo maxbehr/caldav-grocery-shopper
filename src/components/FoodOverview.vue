@@ -10,31 +10,45 @@
 
         <div class="filter filter-categories">
           <label>Categories</label>
-          <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
+          <Badge v-for="cat in groceryData" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
         </div>
       </div>
 
       <div id="grocery-body">
-        <ul id="grocery-list">
-          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
-            <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
-            <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
-            <span class="grocery-info">
-              <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
-              <span class="label" v-text="grocery.label"></span>
-            </span>
-          </li>
-        </ul>
+        <div v-if="category.isActive" v-for="category in groceryData">
+          <h3 v-text="category.name"></h3>
+          <ul id="grocery-list">
+            <li v-for="grocery in category.data" :key="grocery.label" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
+              <span class="grocery-info">
+                <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
+                <span class="label" v-text="grocery.label"></span>
+              </span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
     <div id="basket">
       <h1>Basket</h1>
       <ul id="basket-list">
-        <li v-for="item in basket" :class="{ loading: item.isLoading }">
-          <span v-text="item.label"></span>
+        <li v-for="entry in basketItems">
+          <span>
+            <span v-if="entry.amount > 1" v-text="entry.amount + 'x'" class="amount"></span>
+          </span>
+          <span class="item-label" v-text="entry.item.label"></span>
+          <span class="actions">
+            <span class="more" @click="addItemToBasket(entry.item)">+</span>
+            <span v-if="entry.amount > 1" class="less" @click="reduceAmountInBasket(entry)">－</span>
+            <span class="remove" @click="removeEntryFromBasket(entry)">x</span>
+          </span>
         </li>
       </ul>
+      <div v-if="showBasketButton && !requestsArePending && this.$store.state.basket.length > 0" id="btn-create-list" @click="createShoppingList">create list</div>
+      <div id="basket-state">
+        <span v-if="requestsArePending" class="loading-icon big rotate">&#9676;</span>
+        <span v-if="!showBasketButton && !requestsArePending" class="success-icon big">&#10003;</span>
+      </div>
     </div>
   </div>
 </template>
@@ -52,9 +66,9 @@ export default {
   data () {
     return {
       searchInput: null,
-      basket: this.$store.state.basket,
-      groceries: this.$store.getters.groceries,
-      categories: this.$store.state.groceryCategories
+      groceryData: this.$store.state.groceries,
+      showBasketButton: true,
+      requestsArePending: false
     }
   },
   methods: {
@@ -64,63 +78,70 @@ export default {
       }
       return {}
     },
-    putFoodInBasket (item) {
-      console.log(item);
-      this.$store.dispatch("setItemState", { item, attr: "isLoading", val: true });
-      this.$store.dispatch("putItemInBasket", { item });
-      this.createTodoElement(item);
+    addItemToBasket (item) {
+      this.$store.dispatch("addEntryToBasket", { item });
     },
-    createTodoElement (item) {
-      let store = this.$store;
-      var dav = require('dav');
-      let calEntry = this.createICalEntry({ label: item.label });
-
-      var xhr = new dav.transport.Basic(
-        new dav.Credentials({
-          username: process.env.VUE_APP_DAV_USER,
-          password: process.env.VUE_APP_DAV_PASS
-        })
-      );
-
-      dav.createAccount({ server: process.env.VUE_APP_DAV_SERVER, xhr: xhr })
-      .then(function(account) {
-        let c = account.calendars.filter(c => c.displayName === "Einkaufsliste")[0];
-        console.log(c);
-
-        let filename = item.label.trim().toLowerCase()
-                          .replace(' ', '-')
-                          .replace('\u00e4', 'ae')
-                          .replace('\u00f6', 'oe')
-                          .replace('\u00fc', 'ue')
-                          .replace('\u00df', 'ss');
-
-        dav.createCalendarObject(c, {
-          data: calEntry,
-          filename: `${filename}.ics`,
-          xhr: xhr
-        })
-        .then(function(c) {
-          store.dispatch('setItemState', { item, attr: "isLoading", val: false });
-          store.dispatch('setItemState', { item, attr: "inBasket", val: true });
-        });
-        // // account instanceof dav.Account
-        // account.calendars.forEach(function(calendar) {
-        //   console.log('Found calendar named ', calendar);
-        //   // etc.
-        // });
-      });
+    removeEntryFromBasket (entry) {
+      this.$store.dispatch("removeEntryFromBasket", { entry });
+    },
+    reduceAmountInBasket (entry) {
+      this.$store.dispatch("reduceAmountInBasket", { entry });
     },
     categoryClick (category) {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
+    },
+    createShoppingList () {
+      let store = this.$store;
+
+      if(store.state.basket.length > 0) {
+        let dav = require('dav');
+
+        let promises = [];
+        var xhr = new dav.transport.Basic(
+          new dav.Credentials({
+            username: process.env.VUE_APP_DAV_USER,
+            password: process.env.VUE_APP_DAV_PASS
+          })
+        );
+
+        this.requestsArePending = true;
+        this.showBasketButton = false;
+        let p = dav.createAccount({ server: process.env.VUE_APP_DAV_SERVER, xhr: xhr })
+          .then(account => {
+
+            store.state.basket.forEach(entry => {
+              let label = this.createEntryString(entry);
+              let calEntry = this.createICalEntry({ label });
+              let filename = this.sanitizeString(label);
+              let calendar = account.calendars.filter(c => c.displayName === process.env.VUE_APP_DAV_CALENDAR_NAME)[0];
+
+              dav.createCalendarObject(calendar, {
+                data: calEntry,
+                filename: `${filename}.ics`,
+                xhr: xhr
+              })
+              .then(function(c) {
+                return "done";
+              });
+            });
+
+          Promise.all(promises).then(values => {
+            this.requestsArePending = false;
+          })
+        });
+      }
     }
   },
   components: {
     Badge
   },
   computed: {
+    basketItems () {
+      return this.$store.state.basket;
+    },
     filteredGroceries () {
-      let activeCategories = this.$store.state.groceryCategories.filter(c => c.isActive).map(c => c.name);
-      let g = this.groceries.filter(g => activeCategories.includes(g.category))
+      let activeCategories = this.groceryData.filter(c => c.isActive).map(c => c.name);
+      let g = this.groceryData.filter(g => activeCategories.includes(g.category))
                             .filter(g => {
                               if(this.searchInput && this.searchInput.trim().length > 0) {
                                 return g.label.includes(this.searchInput);
@@ -145,7 +166,7 @@ export default {
   #grocery-head {
     display: grid;
     grid-template-columns: 0.2fr 0.2fr 0.6fr;
-    padding: 0 15px;
+    padding: 10px 15px;
 
     * {
       display: flex;
@@ -160,6 +181,12 @@ export default {
 
   #grocery-body {
     background-color: #f6f9fc;
+
+    h3 {
+      font-size: 0.8em;
+      text-align: left;
+      padding-left: 15px;
+    }
   }
 }
 
@@ -198,13 +225,36 @@ label {
   }
 }
 
+div#basket-state {
+  position: relative;
+  font-size: 6em;
+}
+
+span.success-icon {
+  color: #41b882;
+}
+
+span.loading-icon {
+  position: absolute;
+  color: #828282;
+  left: 0;
+  right: 0;
+}
+
+.rotate {
+  -webkit-animation: loading-spinner 4s linear infinite;
+  -moz-animation: loading-spinner 4s linear infinite;
+  animation: loading-spinner 4s linear infinite;
+}
+
 ul#grocery-list {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
   grid-row-gap: 15px;
   list-style-type: none;
   padding: 0;
-  margin: 30px 0;
+  padding: 0;
+  margin: 10px 0 30px 0;
 
   li {
     display: flex;
@@ -243,32 +293,6 @@ ul#grocery-list {
       border: 1px solid #b3b3b3;
     }
 
-    span.loading-icon, span.success-icon {
-      position: absolute;
-      margin-left: auto;
-      margin-right: auto;
-      left: 0;
-      right: 0;
-
-      &.big {
-        font-size: 6em;
-      }
-    }
-
-    span.success-icon {
-      color: #41b882;
-    }
-
-    span.loading-icon {
-      color: #b1b1b1;
-    }
-
-    .rotate {
-      -webkit-animation: loading-spinner 4s linear infinite;
-      -moz-animation: loading-spinner 4s linear infinite;
-      animation: loading-spinner 4s linear infinite;
-    }
-
     &:hover { cursor: pointer; }
     &.loading { background-color: #eaeaea; }
     &.in-basket {
@@ -277,15 +301,62 @@ ul#grocery-list {
   }
 }
 
-ul#basket-list {
-  list-style-type: none;
-  text-align: left;
+#basket {
+  div#btn-create-list {
+    position: relative;
+    margin: 25px;
+    background: #bfe2ca;
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 1.5em;
+    cursor: pointer;
 
-  li {
-    display: block;
+    &:hover {
+      background: #bfe2ca;
+    }
 
-    &.loading {
-      color: #b1b1b1;
+    &.pendingRequests {
+      background-color: orange;
+    }
+  }
+
+  ul#basket-list {
+    list-style-type: none;
+    text-align: left;
+
+    .actions {
+      margin: 0 0 0 10px;
+
+      span.amount {
+        font-weight: bold;
+      }
+
+      span {
+        width: 20px;
+        display: inline-block;
+        text-align: center;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+
+        &:hover {
+          &.more { background: #00ff00; }
+          &.less { background: #ff1100; }
+          &.remove { background: #ff0000; }
+        }
+      }
+    }
+
+    li {
+      display: grid;
+      grid-template-columns: 0.1fr 0.5fr 0.4fr;
+      -webkit-user-select: none; /* Chrome/Safari */
+      -moz-user-select: none; /* Firefox */
+      -ms-user-select: none; /* IE10+ */
+
+      &.loading {
+        color: #b1b1b1;
+      }
     }
   }
 }

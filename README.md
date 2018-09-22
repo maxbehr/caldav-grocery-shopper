@@ -9,14 +9,15 @@ Instead of typing over and over again the items you are going to buy during your
 CalDAV Grocery Shopper assumes you already set up a CalDAV server and created a calendar with "to do" functionality.
 
 ## Configuration
-Create an `.env` file that contains your CalDAV configuration:
-```
-VUE_APP_DAV_USER=Foo
-VUE_APP_DAV_PASS=Bar
-VUE_APP_DAV_SERVER=https://baz
-```
+- Rename `.env.example` to `.env` and replace the values for your CalDAV configuration appropriately:
+  ```
+  VUE_APP_DAV_USER=Foo
+  VUE_APP_DAV_PASS=Bar
+  VUE_APP_DAV_SERVER=https://baz
+  VUE_APP_DAV_CALENDAR_NAME=grocerylist
+  ```
 
-Fill the `foods.json` with items you want to choose from.
+- Rename the `groceries.example.json` to `groceries.json` and fill it with all the groceries you usually buy:
 
 ## Setup and building
 ```
@@ -28,7 +29,7 @@ npm run build # Compiles and minifies for production
 ## To do
 - [ ] Fixed basket
 - [ ] Media Queries
-- [ ] Filter items by category
+- [x] Filter items by category
 - [ ] Batch request for multiple items
-- [ ] "n times" summary for entry that was added multiple times
-- [ ] Removable items
+- [x] "n times" summary for entry that was added multiple times
+- [x] Removable items
