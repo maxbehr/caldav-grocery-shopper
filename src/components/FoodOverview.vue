@@ -1,14 +1,28 @@
 <template>
   <div class="gs-index">
     <div id="food-overview">
-      <h1>Groceries</h1>
-      <div v-for="food in foods">
-        <h2 v-text="food.name"></h2>
-        <ul id="food-list">
-          <li v-for="item in food.data" @click="putFoodInBasket(item)" :class="{ loading: item.isLoading }" :style="{ 'border-color': food.color }">
-            <span class="label" v-text="item.label"></span>
-            <span v-if="item.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
-            <span v-if="item.inBasket" class="success-icon big">&#10003;</span>
+      <div id="grocery-head">
+        <h1>Groceries</h1>
+        <div class="filter filter-search">
+          <label for="search">Search</label>
+          <input type="text" name="search" v-model="searchInput">
+        </div>
+
+        <div class="filter filter-categories">
+          <label>Categories</label>
+          <Badge v-for="cat in categories" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
+        </div>
+      </div>
+
+      <div id="grocery-body">
+        <ul id="grocery-list">
+          <li v-for="grocery in filteredGroceries" :key="grocery.label" @click="putFoodInBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
+            <span v-if="grocery.isLoading" class="loading-icon big rotate item-loading-while-put-in-basket">&#9676;</span>
+            <span v-if="grocery.inBasket" class="success-icon big">&#10003;</span>
+            <span class="grocery-info">
+              <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
+              <span class="label" v-text="grocery.label"></span>
+            </span>
           </li>
         </ul>
       </div>
@@ -28,6 +42,7 @@
 <script>
 import dav from 'dav';
 import util from '../util';
+import Badge from './Badge';
 
 export default {
   name: 'HelloWorld',
@@ -36,14 +51,22 @@ export default {
   },
   data () {
     return {
+      searchInput: null,
       basket: this.$store.state.basket,
-      foods: this.$store.state.foods
+      groceries: this.$store.getters.groceries,
+      categories: this.$store.state.groceryCategories
     }
   },
   methods: {
+    imgUrl (img) {
+      if(img && img.length > 0) {
+        return { 'background-image': `url('${require('../img/' + img)}')` };
+      }
+      return {}
+    },
     putFoodInBasket (item) {
       console.log(item);
-      this.$store.dispatch("togglePutToBasketState", { item, attr: "isLoading", val: true });
+      this.$store.dispatch("setItemState", { item, attr: "isLoading", val: true });
       this.$store.dispatch("putItemInBasket", { item });
       this.createTodoElement(item);
     },
@@ -77,8 +100,8 @@ export default {
           xhr: xhr
         })
         .then(function(c) {
-          store.dispatch('togglePutToBasketState', { item, attr: "isLoading", val: false });
-          store.dispatch('togglePutToBasketState', { item, attr: "inBasket", val: true });
+          store.dispatch('setItemState', { item, attr: "isLoading", val: false });
+          store.dispatch('setItemState', { item, attr: "inBasket", val: true });
         });
         // // account instanceof dav.Account
         // account.calendars.forEach(function(calendar) {
@@ -86,11 +109,29 @@ export default {
         //   // etc.
         // });
       });
+    },
+    categoryClick (category) {
+      this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
     }
   },
+  components: {
+    Badge
+  },
   computed: {
+    filteredGroceries () {
+      let activeCategories = this.$store.state.groceryCategories.filter(c => c.isActive).map(c => c.name);
+      let g = this.groceries.filter(g => activeCategories.includes(g.category))
+                            .filter(g => {
+                              if(this.searchInput && this.searchInput.trim().length > 0) {
+                                return g.label.includes(this.searchInput);
+                              }
+                              return true;
+                            });
+      return g;
+    }
   },
   created () {
+    this.$store.dispatch('initStore');
   }
 }
 </script>
@@ -100,31 +141,106 @@ export default {
 .gs-index {
   display: grid;
   grid-template-columns: 0.8fr 0.2fr;
+
+  #grocery-head {
+    display: grid;
+    grid-template-columns: 0.2fr 0.2fr 0.6fr;
+    padding: 0 15px;
+
+    * {
+      display: flex;
+      align-self: flex-end;
+      align-items: center;
+    }
+  }
+
+  #food-overview {
+    background-color: #f6f9fc;
+  }
+
+  #grocery-body {
+    background-color: #f6f9fc;
+  }
+}
+
+h1 {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
 }
 
 h3 {
   margin: 40px 0 0;
 }
 
-ul#food-list {
+label {
+  font-weight: bold;
+  font-size: 0.8em;
+  margin-right: 10px;
+}
+
+.filter {
+  display: inline-block;
+  margin: 0 10px;
+
+  &.filter-search {
+    input {
+      padding: 5px 7px;
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 0 #efefef;
+      background: #ffffff;
+      border: 1px solid #e8e8e8;
+    }
+  }
+
+  &.filter-categories {
+    justify-content: flex-end;
+  }
+}
+
+ul#grocery-list {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
   grid-row-gap: 15px;
   list-style-type: none;
   padding: 0;
+  margin: 30px 0;
 
   li {
-    display: inline-block;
+    display: flex;
+    align-items: flex-end;
     margin: 0 10px;
     position: relative;
-    border: 5px solid #efefef;
+    border: 2px solid #efefef;
     border-radius: 10px;
     padding: 10px 15px;
     background-size: cover;
     height: 100px;
     width: 100px;
+    box-shadow: 0 0 15px #efefef;
+    background-color: white;
 
-    span.label {
+    span.grocery-info {
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+      background-color: #00000042;
+      color: white;
+      font-weight: bold;
+      left: 0;
+      border-bottom-right-radius: 10px;
+      border-bottom-left-radius: 10px;
+      padding: 5px 0;
+      font-size: 0.8em;
+    }
+
+    span.category-marker {
+      display: inline-block;
+      height: 10px;
+      width: 10px;
+      margin-right: 10px;
+      border-radius: 10px;
+      border: 1px solid #b3b3b3;
     }
 
     span.loading-icon, span.success-icon {
