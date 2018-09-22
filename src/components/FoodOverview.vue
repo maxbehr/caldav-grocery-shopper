@@ -113,7 +113,7 @@ export default {
               let label = this.createEntryString(entry);
               let calEntry = this.createICalEntry({ label });
               let filename = this.sanitizeString(label);
-              let calendar = account.calendars.filter(c => c.displayName === "Einkaufsliste")[0];
+              let calendar = account.calendars.filter(c => c.displayName === process.env.VUE_APP_DAV_CALENDAR_NAME)[0];
 
               dav.createCalendarObject(calendar, {
                 data: calEntry,
