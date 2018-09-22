@@ -59,7 +59,7 @@ import util from '../util';
 import Badge from './Badge';
 
 export default {
-  name: 'HelloWorld',
+  name: 'FoodOverview',
   mixins: [util],
   props: {
   },
