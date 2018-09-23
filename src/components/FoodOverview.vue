@@ -325,7 +325,7 @@ ul#grocery-list {
     cursor: pointer;
 
     &:hover {
-      background: #bfe2ca;
+      background: #b1d2bb;
     }
 
     &.pendingRequests {
@@ -352,11 +352,10 @@ ul#grocery-list {
         font-size: 1em;
         font-weight: bold;
         cursor: pointer;
+        border-radius: 15px;
 
         &:hover {
-          &.more { background: #00ff00; }
-          &.less { background: #ff1100; }
-          &.remove { background: #ff0000; }
+          background: #e8e8e8;
         }
       }
     }
