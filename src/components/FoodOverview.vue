@@ -16,7 +16,7 @@
         <div v-if="category.isActive" v-for="category in filteredGroceries">
           <h3 v-text="category.name"></h3>
           <ul id="grocery-list">
-            <li v-for="grocery, index in category.data" :key="grocery.label + index" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
+            <li v-for="grocery, index in category.data" :key="grocery.label + index" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }" :style="imgUrl(grocery.img)">
               <span class="grocery-info">
                 <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
                 <span class="label" v-text="grocery.label"></span>
@@ -137,6 +137,10 @@ export default {
           })
         });
       }
+    },
+    isItemInBasket (itemName) {
+      let entries = this.$store.state.basket.map(e => e.item.label);
+      return entries.includes(itemName);
     }
   },
   components: {
@@ -282,6 +286,12 @@ ul#grocery-list {
     width: 100px;
     box-shadow: 0 0 15px #efefef;
     background-color: white;
+    transition: opacity 0.5s;
+
+    &.selected {
+      opacity: 0.3;
+      transition: opacity 0.5s;
+    }
 
     span.grocery-info {
       position: absolute;
