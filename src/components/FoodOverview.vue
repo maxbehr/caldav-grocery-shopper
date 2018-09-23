@@ -15,10 +15,10 @@
       </div>
 
       <div id="grocery-body">
-        <div v-if="category.isActive" v-for="category in groceryData">
+        <div v-if="category.isActive" v-for="category in filteredGroceries">
           <h3 v-text="category.name"></h3>
           <ul id="grocery-list">
-            <li v-for="grocery in category.data" :key="grocery.label" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
+            <li v-for="grocery, index in category.data" :key="grocery.label + index" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading }" :style="imgUrl(grocery.img)">
               <span class="grocery-info">
                 <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
                 <span class="label" v-text="grocery.label"></span>
@@ -140,15 +140,15 @@ export default {
       return this.$store.state.basket;
     },
     filteredGroceries () {
-      let activeCategories = this.groceryData.filter(c => c.isActive).map(c => c.name);
-      let g = this.groceryData.filter(g => activeCategories.includes(g.category))
-                            .filter(g => {
-                              if(this.searchInput && this.searchInput.trim().length > 0) {
-                                return g.label.includes(this.searchInput);
-                              }
-                              return true;
-                            });
-      return g;
+      if(this.searchInput && this.searchInput.trim().length > 0) {
+        let results = this.groceryData.reduce((acc, curr) => acc.concat(curr.data), [])
+                        .filter(g => g.label.includes(this.searchInput));
+        let searchedGroceriesObj = [{ name: "Results", isActive: true, data: results }];
+        return searchedGroceriesObj;
+      } else {
+        let activeCategories = this.groceryData.filter(c => c.isActive).map(c => c.name);
+        return this.groceryData.filter(d => activeCategories.includes(d.name));
+      }
     }
   },
   created () {
