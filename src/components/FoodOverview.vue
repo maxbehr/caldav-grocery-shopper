@@ -4,12 +4,10 @@
       <div id="grocery-head">
         <h1>Groceries</h1>
         <div class="filter filter-search">
-          <label for="search">Search</label>
-          <input type="text" name="search" v-model="searchInput">
+          <input type="text" name="search" v-model="searchInput" placeholder="Search...">
         </div>
 
         <div class="filter filter-categories">
-          <label>Categories</label>
           <Badge v-for="cat in groceryData" :key="cat.name" :id="cat.name" :label="cat.name" :color="cat.color" :active-on-start="cat.isActive" v-on:badge-clicked="categoryClick(cat)" />
         </div>
       </div>
