@@ -324,12 +324,13 @@ ul#grocery-list {
     list-style-type: none;
     text-align: left;
 
+    span.amount {
+      font-weight: bold;
+    }
+
     .actions {
       margin: 0 0 0 10px;
 
-      span.amount {
-        font-weight: bold;
-      }
 
       span {
         width: 20px;
