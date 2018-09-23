@@ -31,6 +31,10 @@
 
     <div id="basket">
       <h1>Basket</h1>
+      <div id="txt-plain-entry">
+        <input type="text" name="search" v-on:keyup.13="addPlainEntryToBasket" v-model="basketPlainItem" placeholder="Add entry...">
+      </div>
+
       <ul id="basket-list">
         <li v-for="entry in basketItems">
           <span>
@@ -66,6 +70,7 @@ export default {
   data () {
     return {
       searchInput: null,
+      basketPlainItem: null,
       groceryData: this.$store.state.groceries,
       showBasketButton: true,
       requestsArePending: false
@@ -89,6 +94,10 @@ export default {
     },
     categoryClick (category) {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
+    },
+    addPlainEntryToBasket () {
+      this.$store.dispatch('addPlainEntryToBasket', { label: this.basketPlainItem });
+      this.basketPlainItem = '';
     },
     createShoppingList () {
       let store = this.$store;
@@ -206,19 +215,25 @@ label {
   margin-right: 10px;
 }
 
+input {
+  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 5px 7px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 0 #efefef;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  width: 50%;
+
+  &:focus {
+    outline: none;
+  }
+}
+
 .filter {
   display: inline-block;
   margin: 0 10px;
-
-  &.filter-search {
-    input {
-      padding: 5px 7px;
-      border-radius: 10px;
-      box-shadow: inset 0 0 0 0 #efefef;
-      background: #ffffff;
-      border: 1px solid #e8e8e8;
-    }
-  }
 
   &.filter-categories {
     justify-content: flex-end;

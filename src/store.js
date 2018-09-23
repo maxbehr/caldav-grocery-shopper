@@ -20,6 +20,10 @@ export default new Vuex.Store({
         state.basket.push({ item: payload.item, amount: 1 });
       }
     },
+    ADD_PLAIN_ENTRY_TO_BASKET (state, payload) {
+      let item = payload;
+      state.basket.push({ item, amount: 1 });
+    },
     REDUCE_AMOUNT_IN_BASKET_FOR_ITEM (state, payload) {
       let item = payload.entry.item;
       let entry = state.basket.filter(e => e.item.label === item.label)[0];
@@ -70,6 +74,9 @@ export default new Vuex.Store({
     },
     addEntryToBasket (context, payload) {
       context.commit('ADD_ENTRY_TO_BASKET', payload);
+    },
+    addPlainEntryToBasket (context, payload) {
+      context.commit('ADD_PLAIN_ENTRY_TO_BASKET', payload);
     },
     removeEntryFromBasket (context, payload) {
       console.log('remove', payload);
