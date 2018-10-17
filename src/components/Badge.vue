@@ -37,7 +37,7 @@ export default {
     border: 1px solid #e8e8e8;
     border-radius: 25px;
     margin: 0 2px;
-    font-size: 0.9em;
+    font-size: 0.7em;
     opacity: 0.5;
 
     &.active {
