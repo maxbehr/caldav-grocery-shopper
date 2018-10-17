@@ -4,7 +4,9 @@
       <div id="grocery-head">
         <h1>Groceries</h1>
         <div class="filter filter-search">
-          <input type="text" name="search" v-model="searchInput" placeholder="Search...">
+          <input type="text" name="search" v-model="searchInput"
+                placeholder="Search..."
+                v-on:keyup.13="addItemToBasketFromSearchInput()">
         </div>
 
         <div class="filter filter-categories">
@@ -15,11 +17,21 @@
       <div id="grocery-body">
         <div v-if="category.isActive" v-for="category in filteredGroceries">
           <h3 v-text="category.name"></h3>
-          <ul id="grocery-list">
-            <li v-for="grocery, index in category.data" :key="grocery.label + index" @click="addItemToBasket(grocery)" :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }" :style="imgUrl(grocery.img)">
+          <ul id="grocery-list" :class="{ 'filtered-by-search': isUserIsSearching }">
+            <li v-for="grocery, index in category.data" :key="grocery.label + index"
+                @click="addItemToBasket(grocery)"
+                :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }"
+                :style="imgUrl(grocery.img)">
               <span class="grocery-info">
                 <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
                 <span class="label" v-text="grocery.label"></span>
+              </span>
+            </li>
+
+            <li v-if="isUserIsSearching" :class="{ selected: isItemInBasket(searchInput) }">
+              <span class="grocery-info">
+                <span class="category-marker"></span>
+                <span class="label" v-text="searchInput"></span>
               </span>
             </li>
           </ul>
@@ -29,10 +41,6 @@
 
     <div id="basket">
       <h1>Basket</h1>
-      <div id="txt-plain-entry">
-        <input type="text" name="search" v-on:keyup.13="addPlainEntryToBasket" v-model="basketPlainItem" placeholder="Add entry...">
-      </div>
-
       <ul id="basket-list">
         <li v-for="entry in basketItems">
           <span>
@@ -68,7 +76,6 @@ export default {
   data () {
     return {
       searchInput: null,
-      basketPlainItem: null,
       groceryData: this.$store.state.groceries,
       showBasketButton: true,
       requestsArePending: false
@@ -84,6 +91,15 @@ export default {
     addItemToBasket (item) {
       this.$store.dispatch("addEntryToBasket", { item });
     },
+    addItemToBasketFromSearchInput () {
+      let itemToBeAdded = null;
+      //  Access reults array
+      let groceries = this.filteredGroceries[0].data;
+      itemToBeAdded = groceries.length > 0 ?
+                        groceries[0] : this.searchItem;
+
+      this.$store.dispatch("addEntryToBasket", { item: itemToBeAdded });
+    },
     removeEntryFromBasket (entry) {
       this.$store.dispatch("removeEntryFromBasket", { entry });
     },
@@ -92,10 +108,6 @@ export default {
     },
     categoryClick (category) {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
-    },
-    addPlainEntryToBasket () {
-      this.$store.dispatch('addPlainEntryToBasket', { label: this.basketPlainItem });
-      this.basketPlainItem = '';
     },
     createShoppingList () {
       let store = this.$store;
@@ -151,7 +163,7 @@ export default {
       return this.$store.state.basket;
     },
     filteredGroceries () {
-      if(this.searchInput && this.searchInput.trim().length > 0) {
+      if(this.isUserIsSearching) {
         let results = this.groceryData.reduce((acc, curr) => acc.concat(curr.data), [])
                         .filter(g => g.label.includes(this.searchInput));
         let searchedGroceriesObj = [{ name: "Results", isActive: true, data: results }];
@@ -159,6 +171,17 @@ export default {
       } else {
         let activeCategories = this.groceryData.filter(c => c.isActive).map(c => c.name);
         return this.groceryData.filter(d => activeCategories.includes(d.name));
+      }
+    },
+    isUserIsSearching () {
+      return this.searchInput && this.searchInput.trim().length > 0
+    },
+    searchItem () {
+      return {
+        label: this.searchInput,
+        color: "#000000",
+        category: "Search",
+        img: "default.png"
       }
     }
   },
@@ -320,6 +343,12 @@ ul#grocery-list {
     &.loading { background-color: #eaeaea; }
     &.in-basket {
       opacity: 0.4;
+    }
+  }
+
+  &.filtered-by-search {
+    li:nth-child(1) {
+      border: 2px solid yellow;
     }
   }
 }
