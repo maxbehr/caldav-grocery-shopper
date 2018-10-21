@@ -38,28 +38,6 @@
         </div>
       </div>
     </div>
-
-    <div id="basket">
-      <h1>Basket</h1>
-      <ul id="basket-list">
-        <li v-for="entry in basketItems">
-          <span>
-            <span v-if="entry.amount > 1" v-text="entry.amount + 'x'" class="amount"></span>
-          </span>
-          <span class="item-label" v-text="entry.item.label"></span>
-          <span class="actions">
-            <span class="more" @click="addItemToBasket(entry.item)">+</span>
-            <span v-if="entry.amount > 1" class="less" @click="reduceAmountInBasket(entry)">－</span>
-            <span class="remove" @click="removeEntryFromBasket(entry)">x</span>
-          </span>
-        </li>
-      </ul>
-      <div v-if="showBasketButton && !requestsArePending && this.$store.state.basket.length > 0" id="btn-create-list" @click="createShoppingList">create list</div>
-      <div id="basket-state">
-        <span v-if="requestsArePending" class="loading-icon big rotate">&#9676;</span>
-        <span v-if="!showBasketButton && !requestsArePending" class="success-icon big">&#10003;</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -67,6 +45,7 @@
 import dav from 'dav';
 import util from '../util';
 import Badge from './Badge';
+import BasketOverview from './BasketOverview';
 
 export default {
   name: 'FoodOverview',
@@ -110,64 +89,18 @@ export default {
     removeEntryFromBasket (entry) {
       this.$store.dispatch("removeEntryFromBasket", { entry });
     },
-    reduceAmountInBasket (entry) {
-      this.$store.dispatch("reduceAmountInBasket", { entry });
-    },
     categoryClick (category) {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
-    },
-    createShoppingList () {
-      let store = this.$store;
-
-      if(store.state.basket.length > 0) {
-        let dav = require('dav');
-
-        let promises = [];
-        var xhr = new dav.transport.Basic(
-          new dav.Credentials({
-            username: process.env.VUE_APP_DAV_USER,
-            password: process.env.VUE_APP_DAV_PASS
-          })
-        );
-
-        this.requestsArePending = true;
-        this.showBasketButton = false;
-        let p = dav.createAccount({ server: process.env.VUE_APP_DAV_SERVER, xhr: xhr })
-          .then(account => {
-
-            store.state.basket.forEach(entry => {
-              let label = this.createEntryString(entry);
-              let calEntry = this.createICalEntry({ label });
-              let filename = this.sanitizeString(label);
-              let calendar = account.calendars.filter(c => c.displayName === process.env.VUE_APP_DAV_CALENDAR_NAME)[0];
-
-              dav.createCalendarObject(calendar, {
-                data: calEntry,
-                filename: `${filename}.ics`,
-                xhr: xhr
-              })
-              .then(function(c) {
-                return "done";
-              });
-            });
-
-          Promise.all(promises).then(values => {
-            this.requestsArePending = false;
-          })
-        });
-      }
     },
     isItemInBasket (itemName) {
       return this.basketItemStrings.includes(itemName);
     }
   },
   components: {
-    Badge
+    Badge,
+    BasketOverview
   },
   computed: {
-    basketItems () {
-      return this.$store.state.basket;
-    },
     filteredGroceries () {
       if(this.isUserIsSearching) {
         let results = this.groceryData.reduce((acc, curr) => acc.concat(curr.data), [])
@@ -200,36 +133,30 @@ export default {
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
-.gs-index {
+#grocery-head {
   display: grid;
-  grid-template-columns: 0.8fr 0.2fr;
+  grid-template-columns: 0.2fr 0.2fr 0.6fr;
+  padding: 10px 15px;
 
-  #grocery-head {
-    display: grid;
-    grid-template-columns: 0.2fr 0.2fr 0.6fr;
-    padding: 10px 15px;
-
-    * {
-      display: flex;
-      align-self: flex-end;
-      align-items: center;
-    }
+  * {
+    display: flex;
+    align-self: flex-end;
+    align-items: center;
   }
+}
 
-  #food-overview {
-    background-color: #f6f9fc;
-  }
+#food-overview {
+  background-color: #f6f9fc;
+}
 
-  #grocery-body {
-    background-color: #f6f9fc;
+#grocery-body {
+  background-color: #f6f9fc;
 
-    h3 {
-      font-size: 0.8em;
-      text-align: left;
-      padding-left: 15px;
-    }
+  h3 {
+    font-size: 0.8em;
+    text-align: left;
+    padding-left: 15px;
   }
 }
 
@@ -272,28 +199,6 @@ input {
   &.filter-categories {
     justify-content: flex-end;
   }
-}
-
-div#basket-state {
-  position: relative;
-  font-size: 6em;
-}
-
-span.success-icon {
-  color: #41b882;
-}
-
-span.loading-icon {
-  position: absolute;
-  color: #828282;
-  left: 0;
-  right: 0;
-}
-
-.rotate {
-  -webkit-animation: loading-spinner 4s linear infinite;
-  -moz-animation: loading-spinner 4s linear infinite;
-  animation: loading-spinner 4s linear infinite;
 }
 
 ul#grocery-list {
@@ -362,71 +267,8 @@ ul#grocery-list {
   }
 }
 
-#basket {
-  div#btn-create-list {
-    position: relative;
-    margin: 25px;
-    background: #bfe2ca;
-    border-radius: 10px;
-    padding: 20px;
-    font-size: 1.5em;
-    cursor: pointer;
-
-    &:hover {
-      background: #b1d2bb;
-    }
-
-    &.pendingRequests {
-      background-color: orange;
-    }
-  }
-
-  ul#basket-list {
-    list-style-type: none;
-    text-align: left;
-
-    span.amount {
-      font-weight: bold;
-    }
-
-    .actions {
-      margin: 0 0 0 10px;
-
-
-      span {
-        width: 20px;
-        display: inline-block;
-        text-align: center;
-        font-size: 1em;
-        font-weight: bold;
-        cursor: pointer;
-        border-radius: 15px;
-
-        &:hover {
-          background: #e8e8e8;
-        }
-      }
-    }
-
-    li {
-      display: grid;
-      grid-template-columns: 0.1fr 0.5fr 0.4fr;
-      -webkit-user-select: none; /* Chrome/Safari */
-      -moz-user-select: none; /* Firefox */
-      -ms-user-select: none; /* IE10+ */
-
-      &.loading {
-        color: #b1b1b1;
-      }
-    }
-  }
-}
-
 a {
   color: #42b983;
 }
 
-@-moz-keyframes loading-spinner { 100% { -moz-transform: rotate(360deg); } }
-@-webkit-keyframes loading-spinner { 100% { -webkit-transform: rotate(360deg); } }
-@keyframes loading-spinner { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 </style>
