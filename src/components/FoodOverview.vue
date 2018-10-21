@@ -18,22 +18,17 @@
         <div v-if="category.isActive" v-for="category in filteredGroceries">
           <h3 v-text="category.name"></h3>
           <ul id="grocery-list" :class="{ 'filtered-by-search': isUserIsSearching }">
-            <li v-for="grocery, index in category.data" :key="grocery.label + index"
-                @click="executeItemClick(grocery)"
-                :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }"
-                :style="imgUrl(grocery.img)">
-              <span class="grocery-info">
-                <span class="category-marker" :style="{ 'background-color': grocery.color }"></span>
-                <span class="label" v-text="grocery.label"></span>
-              </span>
-            </li>
+            <grocery-item
+              v-for="grocery, index in category.data" :key="grocery.label + index"
+              :grocery="grocery"
+              :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }"
+              @click.native="executeItemClick(grocery)" />
 
-            <li v-if="isUserIsSearching" :class="{ selected: isItemInBasket(searchInput) }">
-              <span class="grocery-info">
-                <span class="category-marker"></span>
-                <span class="label" v-text="searchInput"></span>
-              </span>
-            </li>
+            <grocery-item
+              v-if="isUserIsSearching && !isAlreadyExisting(searchInput)"
+              :grocery="searchItem"
+              :class="{ selected: isItemInBasket(searchInput) }"
+              @click.native="executeItemClick(searchItem)" />
           </ul>
         </div>
       </div>
@@ -46,6 +41,7 @@ import dav from 'dav';
 import util from '../util';
 import Badge from './Badge';
 import BasketOverview from './BasketOverview';
+import GroceryItem from './GroceryItem';
 
 export default {
   name: 'FoodOverview',
@@ -93,12 +89,16 @@ export default {
       this.$store.dispatch('setItemState', { item: category, attr: "isActive" });
     },
     isItemInBasket (itemName) {
-      return this.basketItemStrings.includes(itemName);
+      return this.basketItemNames.includes(itemName);
+    },
+    isAlreadyExisting (itemName) {
+      return this.allGroceryItemNames.includes(itemName);
     }
   },
   components: {
     Badge,
-    BasketOverview
+    BasketOverview,
+    GroceryItem
   },
   computed: {
     filteredGroceries () {
@@ -123,8 +123,11 @@ export default {
         img: "default.png"
       }
     },
-    basketItemStrings () {
+    basketItemNames () {
       return this.$store.state.basket.map(e => e.item.label);
+    },
+    allGroceryItemNames () {
+      return this.$store.state.groceries.map(e => e.data.map(g => g.label)).flat();
     }
   },
   created () {
@@ -209,56 +212,6 @@ ul#grocery-list {
   padding: 0;
   padding: 0;
   margin: 10px 0 30px 0;
-
-  li {
-    display: flex;
-    align-items: flex-end;
-    margin: 0 10px;
-    position: relative;
-    border: 2px solid #efefef;
-    border-radius: 10px;
-    padding: 10px 15px;
-    background-size: cover;
-    height: 100px;
-    width: 100px;
-    box-shadow: 0 0 15px #efefef;
-    background-color: white;
-    transition: opacity 0.5s;
-
-    &.selected {
-      opacity: 0.3;
-      transition: opacity 0.5s;
-    }
-
-    span.grocery-info {
-      position: absolute;
-      bottom: 0px;
-      width: 100%;
-      background-color: #00000042;
-      color: white;
-      font-weight: bold;
-      left: 0;
-      border-bottom-right-radius: 10px;
-      border-bottom-left-radius: 10px;
-      padding: 5px 0;
-      font-size: 0.8em;
-    }
-
-    span.category-marker {
-      display: inline-block;
-      height: 10px;
-      width: 10px;
-      margin-right: 10px;
-      border-radius: 10px;
-      border: 1px solid #b3b3b3;
-    }
-
-    &:hover { cursor: pointer; }
-    &.loading { background-color: #eaeaea; }
-    &.in-basket {
-      opacity: 0.4;
-    }
-  }
 
   &.filtered-by-search {
     li:nth-child(1) {
