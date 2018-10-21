@@ -17,7 +17,7 @@ export default new Vuex.Store({
       if(entry) {
         entry.amount = entry.amount + 1;
       } else {
-        state.basket.push({ item: payload.item, amount: 1 });
+        state.basket.push({ item, amount: 1 });
       }
     },
     ADD_PLAIN_ENTRY_TO_BASKET (state, payload) {

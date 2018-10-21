@@ -19,7 +19,7 @@
           <h3 v-text="category.name"></h3>
           <ul id="grocery-list" :class="{ 'filtered-by-search': isUserIsSearching }">
             <li v-for="grocery, index in category.data" :key="grocery.label + index"
-                @click="addItemToBasket(grocery)"
+                @click="executeItemClick(grocery)"
                 :class="{ loading: grocery.isLoading, selected: isItemInBasket(grocery.label) }"
                 :style="imgUrl(grocery.img)">
               <span class="grocery-info">
@@ -88,6 +88,13 @@ export default {
       }
       return {}
     },
+    executeItemClick (item) {
+      if(this.isItemInBasket(item.label)) {
+        this.removeEntryFromBasket(item);
+      } else {
+        this.addItemToBasket(item);
+      }
+    },
     addItemToBasket (item) {
       this.$store.dispatch("addEntryToBasket", { item });
     },
@@ -151,8 +158,7 @@ export default {
       }
     },
     isItemInBasket (itemName) {
-      let entries = this.$store.state.basket.map(e => e.item.label);
-      return entries.includes(itemName);
+      return this.basketItemStrings.includes(itemName);
     }
   },
   components: {
@@ -183,6 +189,9 @@ export default {
         category: "Search",
         img: "default.png"
       }
+    },
+    basketItemStrings () {
+      return this.$store.state.basket.map(e => e.item.label);
     }
   },
   created () {
