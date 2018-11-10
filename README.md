@@ -1,6 +1,6 @@
 # CalDAV Grocery Shoper
 
-CalDAV Food Shopping List lets you easily add new items to your CalDAV shopping list.
+CalDAV Food Shopping List lets you easily add items to your CalDAV shopping list.
 
 Managing your shopping list with a to do list on your CalDAV server is a simple and pragmatic way, especially when using proprietary software to deal with an easy topic such as managing a shopping list is no option for you.
 
@@ -27,9 +27,14 @@ npm run build # Compiles and minifies for production
 ```
 
 ## To do
+- [ ] Check grocery image by item name, fallback: default image
 - [ ] Fixed basket
 - [ ] Media Queries
-- [x] Filter items by category
+- [ ] Subtypes of items
 - [ ] Batch request for multiple items
+- [ ] Show basket items on startup
+- [x] Improve search and add of items
+- [x] Deselect items on click, instead of adding it
+- [x] Filter items by category
 - [x] "n times" summary for entry that was added multiple times
 - [x] Removable items
